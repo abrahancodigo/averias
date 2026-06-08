@@ -21,6 +21,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   const [fotosBase64, setFotosBase64] = useState([]);
   const [fotosExistentes, setFotosExistentes] = useState([]);
   const [comprimiendo, setComprimiendo] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
   const fileInputRef = useRef(null);
@@ -108,29 +109,36 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     }
 
     setComprimiendo(true);
+    setCompressionProgress(0);
     setMensaje(null);
 
-    try {
-      const comprimidas = await Promise.allSettled(archivos.map(compressImage));
-      const exitosas = comprimidas
-        .filter((r) => r.status === "fulfilled")
-        .map((r) => r.value);
-      const fallidas = comprimidas.filter((r) => r.status === "rejected").length;
+    const exitosas = [];
+    let fallidas = 0;
+    const totalArchivos = archivos.length;
 
-      if (exitosas.length > 0) {
-        setFotosBase64((prev) => [...prev, ...exitosas]);
+    for (let i = 0; i < archivos.length; i++) {
+      try {
+        const result = await compressImage(archivos[i]);
+        exitosas.push(result);
+      } catch {
+        fallidas++;
       }
-      if (fallidas > 0) {
-        setMensaje({
-          tipo: "error",
-          texto: `${fallidas} imagen(es) no pudieron comprimirse`,
-        });
-      }
-    } catch {
-      setMensaje({ tipo: "error", texto: "Error al comprimir imagenes" });
-    } finally {
-      setComprimiendo(false);
+      // update progress (percentage)
+      setCompressionProgress(Math.round(((i + 1) / totalArchivos) * 100));
     }
+
+    if (exitosas.length > 0) {
+      setFotosBase64((prev) => [...prev, ...exitosas]);
+    }
+    if (fallidas > 0) {
+      setMensaje({
+        tipo: "error",
+        texto: `${fallidas} imagen(es) no pudieron comprimirse`,
+      });
+    }
+    setComprimiendo(false);
+    // reset progress after a short delay so the bar is visible briefly
+    setTimeout(() => setCompressionProgress(0), 800);
   };
 
   const eliminarFotoNueva = (index) => {
@@ -291,8 +299,13 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
           >
             Subir Foto
           </button>
-        </div>
-        <input
+          </div>
+          {compressionProgress > 0 && (
+            <div className="progress-bar">
+              <div className="progress" style={{ width: `${compressionProgress}%` }} />
+            </div>
+          )}
+          <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
