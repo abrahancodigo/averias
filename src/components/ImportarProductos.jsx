@@ -48,6 +48,9 @@ const ImportarProductos = () => {
       let nombreCol = headers.findIndex(
         (h) => h.includes("nombre") || h.includes("producto") || h.includes("name") || h.includes("product") || h.includes("descripcion")
       );
+      let precioCol = headers.findIndex(
+        (h) => h.includes("precio") || h.includes("price") || h.includes("costo") || h.includes("cost")
+      );
 
       if (codigoCol === -1) codigoCol = 1;
       if (nombreCol === -1) nombreCol = 2;
@@ -57,8 +60,10 @@ const ImportarProductos = () => {
         if (rowNumber === 1) return;
         const codigo = row.getCell(codigoCol).value?.toString().trim() || "";
         const nombre = row.getCell(nombreCol).value?.toString().trim() || "";
+        const precioRaw = row.getCell(precioCol).value;
+        const precio = precioRaw ? parseFloat(precioRaw) || 0 : 0;
         if (codigo || nombre) {
-          lista.push({ codigo, nombre });
+          lista.push({ codigo, nombre, precio });
         }
       });
 
@@ -131,7 +136,8 @@ const ImportarProductos = () => {
       <div className="campo">
         <label>Subir archivo Excel (.xlsx)</label>
         <p className="ayuda-texto">
-          Columnas: <strong>Codigo</strong> y <strong>Nombre</strong> (o SKU/Producto).
+          Columnas esperadas (encabezados exactos): <strong>Codigo</strong>, <strong>Nombre</strong> y <strong>Precio</strong>.
+          El precio debe ser numérico; si se omite se guardará como 0.
         </p>
         <input
           ref={fileRef}
@@ -151,6 +157,7 @@ const ImportarProductos = () => {
                 <tr>
                   <th>Codigo</th>
                   <th>Nombre</th>
+                  <th>Precio</th>
                 </tr>
               </thead>
               <tbody>
@@ -158,6 +165,7 @@ const ImportarProductos = () => {
                   <tr key={i}>
                     <td>{p.codigo}</td>
                     <td>{p.nombre}</td>
+                    <td>{p.precio != null ? p.precio : ""}</td>
                   </tr>
                 ))}
               </tbody>

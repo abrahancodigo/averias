@@ -9,6 +9,7 @@ import {
   doc,
   writeBatch,
   limit,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 
@@ -19,6 +20,7 @@ export const agregarProducto = async (producto) => {
   const docRef = await addDoc(collection(db, COLLECTION), {
     codigo: producto.codigo,
     nombre: producto.nombre,
+    precio: producto.precio || 0,
     created_at: new Date().toISOString(),
   });
   return docRef.id;
@@ -85,4 +87,26 @@ export const eliminarProductos = async () => {
     eliminados += lote.length;
   }
   return eliminados;
+};
+
+export const obtenerProductoPorCodigo = async (codigo) => {
+  const q = query(
+    collection(db, COLLECTION),
+    where("codigo", "==", codigo),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return { id: doc.id, ...doc.data() };
+};
+
+export const actualizarProducto = async (id, producto) => {
+  const docRef = doc(db, COLLECTION, id);
+  await updateDoc(docRef, {
+    codigo: producto.codigo,
+    nombre: producto.nombre,
+    precio: producto.precio || 0,
+    updated_at: new Date().toISOString(),
+  });
 };

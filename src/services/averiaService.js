@@ -17,6 +17,7 @@ export const registrarAveria = async (averia, fotosBase64) => {
   const docRef = await addDoc(collection(db, COLLECTION), {
     codigo: averia.codigo,
     producto: averia.producto,
+    precio: parseFloat(averia.precio) || 0,
     estado: averia.estado,
     observaciones: averia.observaciones,
     fotos: fotosBase64,
@@ -30,6 +31,7 @@ export const actualizarAveria = async (id, averia, fotos) => {
   await updateDoc(docRef, {
     codigo: averia.codigo,
     producto: averia.producto,
+    precio: parseFloat(averia.precio) || 0,
     estado: averia.estado,
     observaciones: averia.observaciones,
     fotos: fotos,

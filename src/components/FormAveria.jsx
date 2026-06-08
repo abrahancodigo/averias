@@ -15,6 +15,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   const [formulario, setFormulario] = useState({
     codigo: "",
     producto: "",
+    precio: "",
     estado: "Averia",
     observaciones: "",
   });
@@ -32,6 +33,9 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   const busquedaRef = useRef(null);
   const debounceRef = useRef(null);
 
+  const [mostrarDialogoDuplicado, setMostrarDialogoDuplicado] = useState(false);
+  const [productoDuplicado, setProductoDuplicado] = useState(null);
+
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -43,6 +47,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
       setFormulario({
         codigo: averiaEditar.codigo || "",
         producto: averiaEditar.producto || "",
+        precio: averiaEditar.precio || "",
         estado: averiaEditar.estado || "Averia",
         observaciones: averiaEditar.observaciones || "",
       });
@@ -95,6 +100,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
       ...formulario,
       codigo: producto.codigo || formulario.codigo,
       producto: producto.nombre,
+      precio: producto.precio || "",
     });
     setMostrarSugerencias(false);
     setResultadosBusqueda([]);
@@ -165,7 +171,48 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     setMensaje(null);
 
     try {
+      const { obtenerProductoPorCodigo } = await import("../services/productoService");
+      const existente = await obtenerProductoPorCodigo(formulario.codigo.trim());
+
+      if (existente && !esEdicion) {
+        setProductoDuplicado(existente);
+        setMostrarDialogoDuplicado(true);
+        setCargando(false);
+        return;
+      }
+
+      await guardarAveria();
+    } catch (error) {
+      console.error(error);
+      let errorMsg = "Error al guardar";
+      if (error.code === "permission-denied") {
+        errorMsg = "No tienes permiso.";
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      setMensaje({ tipo: "error", texto: errorMsg });
+      setCargando(false);
+    }
+  };
+
+  const guardarAveria = async (actualizarProductoExistente = false) => {
+    try {
       const todasFotos = [...fotosExistentes, ...fotosBase64];
+      const { agregarProducto, actualizarProducto } = await import("../services/productoService");
+
+      if (actualizarProductoExistente && productoDuplicado) {
+        await actualizarProducto(productoDuplicado.id, {
+          codigo: formulario.codigo.trim(),
+          nombre: formulario.producto.trim(),
+          precio: parseFloat(formulario.precio) || 0,
+        });
+      } else {
+        await agregarProducto({
+          codigo: formulario.codigo.trim(),
+          nombre: formulario.producto.trim(),
+          precio: parseFloat(formulario.precio) || 0,
+        });
+      }
 
       if (esEdicion) {
         await actualizarAveria(averiaEditar.id, formulario, todasFotos);
@@ -177,23 +224,37 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
         setMensaje({ tipo: "exito", texto: "Registro exitoso" });
       }
 
-      setFormulario({ codigo: "", producto: "", estado: "Averia", observaciones: "" });
+      setFormulario({ codigo: "", producto: "", precio: "", estado: "Averia", observaciones: "" });
       setFotosBase64([]);
       setFotosExistentes([]);
       setResultadosBusqueda([]);
+      setMostrarDialogoDuplicado(false);
+      setProductoDuplicado(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error(error);
-      let errorMsg = "Error al guardar";
-      if (error.code === "permission-denied") {
-        errorMsg = "No tienes permiso.";
-      } else if (error.message) {
-        errorMsg = error.message;
-      }
-      setMensaje({ tipo: "error", texto: errorMsg });
+      setMensaje({ tipo: "error", texto: "Error al guardar" });
     } finally {
       setCargando(false);
     }
+  };
+
+  const duplicarProducto = async () => {
+    setMostrarDialogoDuplicado(false);
+    setCargando(true);
+    await guardarAveria(false);
+  };
+
+  const actualizarProductoExistente = async () => {
+    setMostrarDialogoDuplicado(false);
+    setCargando(true);
+    await guardarAveria(true);
+  };
+
+  const cancelarDuplicado = () => {
+    setMostrarDialogoDuplicado(false);
+    setProductoDuplicado(null);
+    setCargando(false);
   };
 
   return (
@@ -249,6 +310,20 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="campo">
+        <label htmlFor="precio">Precio</label>
+        <input
+          type="number"
+          id="precio"
+          name="precio"
+          value={formulario.precio}
+          onChange={manejarCambio}
+          placeholder="0.00"
+          step="0.01"
+          min="0"
+        />
       </div>
 
       <div className="campo">
@@ -355,6 +430,47 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
           </button>
         )}
       </div>
+
+      {mostrarDialogoDuplicado && productoDuplicado && (
+        <div className="dialogo-overlay">
+          <div className="dialogo-contenido">
+            <h3>Producto Duplicado</h3>
+            <p>
+              El código <strong>{productoDuplicado.codigo}</strong> ya existe en la base de datos.
+            </p>
+            <p>
+              <strong>Producto actual:</strong> {productoDuplicado.nombre}
+            </p>
+            <p>
+              <strong>Precio actual:</strong> ${productoDuplicado.precio || 0}
+            </p>
+            <p>¿Qué deseas hacer?</p>
+            <div className="dialogo-botones">
+              <button
+                type="button"
+                className="btn-actualizar"
+                onClick={actualizarProductoExistente}
+              >
+                Actualizar Producto
+              </button>
+              <button
+                type="button"
+                className="btn-duplicar"
+                onClick={duplicarProducto}
+              >
+                Duplicar Registro
+              </button>
+              <button
+                type="button"
+                className="btn-cancelar-dialogo"
+                onClick={cancelarDuplicado}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };
