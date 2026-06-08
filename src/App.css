@@ -81,7 +81,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
   background: var(--app-bg);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
@@ -99,6 +99,18 @@ html[data-theme] body {
 }
 
 /* APP SHELL */
+
+/* Responsive container width */
+@media (min-width: 600px) {
+  .app {
+    max-width: 600px;
+  }
+}
+@media (min-width: 900px) {
+  .app {
+    max-width: 800px;
+  }
+}
 .app {
   background: var(--app-bg);
 	color: var(--text-primary);
@@ -1944,4 +1956,16 @@ transition: var(--transition-theme);
 .login-card,
 .tab-content {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Hover effects */
+.nav-btn:hover {
+  background: var(--primary-bg);
+  border-radius: var(--radius-sm);
+}
+
+/* Card hover */
+.card-averia:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-3d-hover);
 }
