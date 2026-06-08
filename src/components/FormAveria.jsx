@@ -30,7 +30,9 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
   const [buscando, setBuscando] = useState(false);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
-  const busquedaRef = useRef(null);
+  const [campoBusquedaActivo, setCampoBusquedaActivo] = useState(null);
+  const busquedaCodigoRef = useRef(null);
+  const busquedaProductoRef = useRef(null);
   const debounceRef = useRef(null);
 
   const [mostrarDialogoDuplicado, setMostrarDialogoDuplicado] = useState(false);
@@ -57,7 +59,9 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
 
   useEffect(() => {
     const manejarClicFuera = (e) => {
-      if (busquedaRef.current && !busquedaRef.current.contains(e.target)) {
+      const enCodigo = busquedaCodigoRef.current && busquedaCodigoRef.current.contains(e.target);
+      const enProducto = busquedaProductoRef.current && busquedaProductoRef.current.contains(e.target);
+      if (!enCodigo && !enProducto) {
         setMostrarSugerencias(false);
       }
     };
@@ -70,12 +74,13 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   };
 
   const manejarBusqueda = (e) => {
-    const valor = e.target.value;
-    setFormulario({ ...formulario, producto: valor });
+    const { name, value } = e.target;
+    setFormulario({ ...formulario, [name]: value });
+    setCampoBusquedaActivo(name);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (valor.trim().length < 2) {
+    if (value.trim().length < 2) {
       setResultadosBusqueda([]);
       setMostrarSugerencias(false);
       return;
@@ -84,7 +89,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     debounceRef.current = setTimeout(async () => {
       setBuscando(true);
       try {
-        const resultados = await buscarProductos(valor);
+        const resultados = await buscarProductos(value);
         setResultadosBusqueda(resultados);
         setMostrarSugerencias(resultados.length > 0);
       } catch (err) {
@@ -92,18 +97,54 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
       } finally {
         setBuscando(false);
       }
-    }, 300);
+    }, 150);
   };
 
   const seleccionarProducto = (producto) => {
     setFormulario({
       ...formulario,
-      codigo: producto.codigo || formulario.codigo,
-      producto: producto.nombre,
+      codigo: producto.codigo || "",
+      producto: producto.nombre || "",
       precio: producto.precio || "",
     });
     setMostrarSugerencias(false);
     setResultadosBusqueda([]);
+    setCampoBusquedaActivo(null);
+  };
+
+  const renderSugerencias = (campo) => {
+    if (!mostrarSugerencias || campoBusquedaActivo !== campo) return null;
+
+    if (resultadosBusqueda.length === 0 && formulario[campo].trim().length >= 2) {
+      return (
+        <div className="sugerencias">
+          <div className="sugerencia-vacia">Sin resultados</div>
+        </div>
+      );
+    }
+
+    if (resultadosBusqueda.length === 0) return null;
+
+    return (
+      <div className="sugerencias">
+        {resultadosBusqueda.slice(0, 10).map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            className="sugerencia-item"
+            onClick={() => seleccionarProducto(p)}
+          >
+            <div className="sugerencia-info">
+              <span className="sugerencia-codigo">{p.codigo}</span>
+              <span className="sugerencia-nombre">{p.nombre}</span>
+            </div>
+            {p.precio > 0 && (
+              <span className="sugerencia-precio">${p.precio.toLocaleString("es-CO")}</span>
+            )}
+          </button>
+        ))}
+      </div>
+    );
   };
 
   const manejarFotos = async (e) => {
@@ -265,20 +306,31 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
         <div className={`mensaje mensaje-${mensaje.tipo}`}>{mensaje.texto}</div>
       )}
 
-      <div className="campo">
+      <div className="campo" ref={busquedaCodigoRef}>
         <label htmlFor="codigo">Codigo *</label>
-        <input
-          type="text"
-          id="codigo"
-          name="codigo"
-          value={formulario.codigo}
-          onChange={manejarCambio}
-          placeholder="Ej: AVG-001"
-          required
-        />
+        <div className="busqueda-wrapper">
+          <input
+            type="text"
+            id="codigo"
+            name="codigo"
+            value={formulario.codigo}
+            onChange={manejarBusqueda}
+            onFocus={() => {
+              if (resultadosBusqueda.length > 0 && campoBusquedaActivo === "codigo") {
+                setMostrarSugerencias(true);
+              }
+            }}
+            placeholder="Ej: AVG-001"
+            required
+          />
+          {buscando && campoBusquedaActivo === "codigo" && (
+            <span className="buscando-indicator">...</span>
+          )}
+        </div>
+        {renderSugerencias("codigo")}
       </div>
 
-      <div className="campo" ref={busquedaRef}>
+      <div className="campo" ref={busquedaProductoRef}>
         <label htmlFor="producto">Producto *</label>
         <div className="busqueda-wrapper">
           <input
@@ -288,28 +340,18 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
             value={formulario.producto}
             onChange={manejarBusqueda}
             onFocus={() => {
-              if (resultadosBusqueda.length > 0) setMostrarSugerencias(true);
+              if (resultadosBusqueda.length > 0 && campoBusquedaActivo === "producto") {
+                setMostrarSugerencias(true);
+              }
             }}
             placeholder="Buscar producto..."
             required
           />
-          {buscando && <span className="buscando-indicator">...</span>}
+          {buscando && campoBusquedaActivo === "producto" && (
+            <span className="buscando-indicator">...</span>
+          )}
         </div>
-        {mostrarSugerencias && resultadosBusqueda.length > 0 && (
-          <div className="sugerencias">
-            {resultadosBusqueda.slice(0, 10).map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className="sugerencia-item"
-                onClick={() => seleccionarProducto(p)}
-              >
-                <span className="sugerencia-codigo">{p.codigo}</span>
-                <span className="sugerencia-nombre">{p.nombre}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {renderSugerencias("producto")}
       </div>
 
       <div className="campo">

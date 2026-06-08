@@ -3,9 +3,7 @@ import {
   addDoc,
   getDocs,
   query,
-  orderBy,
   where,
-  deleteDoc,
   doc,
   writeBatch,
   limit,
@@ -16,6 +14,26 @@ import { db } from "../config/firebase";
 const COLLECTION = "productos";
 const BATCH_LIMIT = 500;
 
+let cacheProductos = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 60_000;
+
+const cargarCache = async () => {
+  const ahora = Date.now();
+  if (cacheProductos && ahora - cacheTimestamp < CACHE_TTL) {
+    return cacheProductos;
+  }
+  const snapshot = await getDocs(collection(db, COLLECTION));
+  cacheProductos = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  cacheTimestamp = ahora;
+  return cacheProductos;
+};
+
+export const invalidarCache = () => {
+  cacheProductos = null;
+  cacheTimestamp = 0;
+};
+
 export const agregarProducto = async (producto) => {
   const docRef = await addDoc(collection(db, COLLECTION), {
     codigo: producto.codigo,
@@ -23,6 +41,7 @@ export const agregarProducto = async (producto) => {
     precio: producto.precio || 0,
     created_at: new Date().toISOString(),
   });
+  invalidarCache();
   return docRef.id;
 };
 
@@ -36,12 +55,14 @@ export const agregarProductos = async (productos) => {
       batch.set(docRef, {
         codigo: p.codigo,
         nombre: p.nombre,
+        precio: p.precio || 0,
         created_at: new Date().toISOString(),
       });
     }
     await batch.commit();
     total += lote.length;
   }
+  invalidarCache();
   return total;
 };
 
@@ -49,21 +70,19 @@ export const buscarProductos = async (termino) => {
   const term = termino.toLowerCase().trim();
   if (!term) return [];
 
-  const snapshot = await getDocs(
-    query(collection(db, COLLECTION), orderBy("nombre"), limit(50))
-  );
-  const todos = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const productos = await cargarCache();
 
-  return todos.filter(
-    (p) =>
-      p.codigo?.toLowerCase().includes(term) ||
-      p.nombre?.toLowerCase().includes(term)
-  );
+  return productos
+    .filter(
+      (p) =>
+        p.codigo?.toLowerCase().includes(term) ||
+        p.nombre?.toLowerCase().includes(term)
+    )
+    .slice(0, 15);
 };
 
 export const obtenerProductos = async () => {
-  const snapshot = await getDocs(collection(db, COLLECTION));
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return cargarCache();
 };
 
 export const existeProducto = async (codigo) => {
@@ -86,6 +105,7 @@ export const eliminarProductos = async () => {
     await batch.commit();
     eliminados += lote.length;
   }
+  invalidarCache();
   return eliminados;
 };
 
@@ -109,4 +129,5 @@ export const actualizarProducto = async (id, producto) => {
     precio: producto.precio || 0,
     updated_at: new Date().toISOString(),
   });
+  invalidarCache();
 };

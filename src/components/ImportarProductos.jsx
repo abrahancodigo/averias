@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import ExcelJS from "exceljs";
-import { agregarProductos, eliminarProductos, obtenerProductos } from "../services/productoService";
+import { agregarProductos, eliminarProductos, obtenerProductos, actualizarProducto, invalidarCache } from "../services/productoService";
 
 const vibrar = (ms = 10) => {
   if (navigator.vibrate) navigator.vibrate(ms);
@@ -15,6 +15,11 @@ const ImportarProductos = () => {
   const leerArchivo = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Verify that the file is an .xlsx workbook (ExcelJS supports .xlsx only)
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      setMensaje({ tipo: 'error', texto: 'Solo se admiten archivos .xlsx' });
+      return;
+    }
 
     if (file.size > 5 * 1024 * 1024) {
       setMensaje({ tipo: "error", texto: "El archivo es muy grande (max 5MB)" });
@@ -39,7 +44,8 @@ const ImportarProductos = () => {
 
       const headers = [];
       sheet.getRow(1).eachCell((cell, colNumber) => {
-        headers[colNumber] = cell.value?.toString().toLowerCase().trim() || "";
+        // ExcelJS usa índices 1-based, convertimos a 0-based
+        headers[colNumber - 1] = cell.value?.toString().toLowerCase().trim() || "";
       });
 
       let codigoCol = headers.findIndex(
@@ -54,13 +60,16 @@ const ImportarProductos = () => {
 
       if (codigoCol === -1) codigoCol = 1;
       if (nombreCol === -1) nombreCol = 2;
+      // Si no se encuentra la columna de precio, usamos la siguiente posición disponible
+      if (precioCol === -1) precioCol = Math.max(codigoCol, nombreCol) + 1;
 
       const lista = [];
       sheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return;
-        const codigo = row.getCell(codigoCol).value?.toString().trim() || "";
-        const nombre = row.getCell(nombreCol).value?.toString().trim() || "";
-        const precioRaw = row.getCell(precioCol).value;
+        // getCell usa índices 1-based, así que sumamos 1 a los índices 0-based
+        const codigo = row.getCell(codigoCol + 1).value?.toString().trim() || "";
+        const nombre = row.getCell(nombreCol + 1).value?.toString().trim() || "";
+        const precioRaw = row.getCell(precioCol + 1).value;
         const precio = precioRaw ? parseFloat(precioRaw) || 0 : 0;
         if (codigo || nombre) {
           lista.push({ codigo, nombre, precio });
@@ -71,8 +80,9 @@ const ImportarProductos = () => {
       setMensaje({ tipo: "exito", texto: `${lista.length} productos encontrados` });
       vibrar(20);
     } catch (err) {
-      console.error(err);
-      setMensaje({ tipo: "error", texto: "Error al leer el archivo" });
+      console.error("Error al leer el archivo:", err);
+      const errorMsg = err.message || "Error desconocido al leer el archivo";
+      setMensaje({ tipo: "error", texto: `Error al leer el archivo: ${errorMsg}` });
     } finally {
       setCargando(false);
     }
@@ -85,21 +95,43 @@ const ImportarProductos = () => {
 
     try {
       const existentes = await obtenerProductos();
-      const codigosExistentes = new Set(existentes.map((p) => p.codigo));
-      const nuevos = productos.filter((p) => !codigosExistentes.has(p.codigo));
+      const mapaExistentes = new Map(existentes.map((p) => [p.codigo, p]));
 
-      if (nuevos.length === 0) {
-        setMensaje({ tipo: "error", texto: "Todos los productos ya existen" });
-        setCargando(false);
-        return;
+      const nuevos = [];
+      const aActualizar = [];
+
+      for (const p of productos) {
+        const existente = mapaExistentes.get(p.codigo);
+        if (!existente) {
+          nuevos.push(p);
+        } else if (p.precio > 0 && existente.precio !== p.precio) {
+          aActualizar.push({ id: existente.id, ...p });
+        }
       }
 
-      await agregarProductos(nuevos);
-      const omitidos = productos.length - nuevos.length;
-      setMensaje({
-        tipo: "exito",
-        texto: `${nuevos.length} guardados${omitidos > 0 ? ` (${omitidos} duplicados omitidos)` : ""}`,
-      });
+      let totalGuardados = 0;
+      let totalActualizados = 0;
+
+      if (nuevos.length > 0) {
+        totalGuardados = await agregarProductos(nuevos);
+      }
+
+      for (const p of aActualizar) {
+        await actualizarProducto(p.id, { codigo: p.codigo, nombre: p.nombre, precio: p.precio });
+        totalActualizados++;
+      }
+
+      invalidarCache();
+
+      if (totalGuardados === 0 && totalActualizados === 0) {
+        setMensaje({ tipo: "error", texto: "Todos los productos ya existen con el mismo precio" });
+      } else {
+        const partes = [];
+        if (totalGuardados > 0) partes.push(`${totalGuardados} guardados`);
+        if (totalActualizados > 0) partes.push(`${totalActualizados} precios actualizados`);
+        setMensaje({ tipo: "exito", texto: partes.join(" y ") });
+      }
+
       setProductos([]);
       if (fileRef.current) fileRef.current.value = "";
     } catch (err) {
@@ -142,7 +174,7 @@ const ImportarProductos = () => {
         <input
           ref={fileRef}
           type="file"
-          accept=".xlsx,.xls"
+          accept=".xlsx"
           onChange={leerArchivo}
           disabled={cargando}
         />
