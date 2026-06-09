@@ -87,8 +87,8 @@ export const exportarAveriasAExcel = async (averias) => {
         row.height = 120;
         sheet.addImage(imageId, {
           tl: { col: 5, row: i + 1 },
-          br: { col: 6, row: i + 1 },
-          editAs: "cell",
+          ext: { width: 245, height: 120 },
+          editAs: "oneCell",
         });
       } catch (e) {
         console.warn("Error al cargar imagen para Excel:", e);
