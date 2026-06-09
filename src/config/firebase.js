@@ -3,14 +3,14 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyC6V0ED0Y-PRobDxu5xS6_ttedLzHotSBE",
+  authDomain: "dalseaverias.firebaseapp.com",
+  databaseURL: "https://dalseaverias-default-rtdb.firebaseio.com",
+  projectId: "dalseaverias",
+  storageBucket: "dalseaverias.firebasestorage.app",
+  messagingSenderId: "336154134474",
+  appId: "1:336154134474:web:35f3c7e0b30931e6b3f133",
+  measurementId: "G-4ZR63WXZ7L",
 };
 
 const app = initializeApp(firebaseConfig);
