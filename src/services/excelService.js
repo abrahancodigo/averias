@@ -36,7 +36,7 @@ export const exportarAveriasAExcel = async (averias) => {
     { header: "Producto", key: "producto", width: 25 },
     { header: "Estado", key: "estado", width: 15 },
     { header: "Observaciones", key: "observaciones", width: 35 },
-    { header: "Foto", key: "foto", width: 30 },
+    { header: "Foto", key: "foto", width: 35 },
   ];
 
   sheet.getRow(1).eachCell((cell) => {
@@ -84,10 +84,11 @@ export const exportarAveriasAExcel = async (averias) => {
           extension: "jpeg",
         });
 
-        row.height = 100;
+        row.height = 120;
         sheet.addImage(imageId, {
           tl: { col: 5, row: i + 1 },
-          ext: { width: 120, height: 90 },
+          ext: { width: 220, height: 120 },
+          editAs: "oneCell",
         });
       } catch (e) {
         console.warn("Error al cargar imagen para Excel:", e);
