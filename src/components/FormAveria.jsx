@@ -3,7 +3,6 @@ import { registrarAveria, actualizarAveria } from "../services/averiaService";
 import {
   buscarProductos,
   agregarProducto,
-  actualizarProducto,
   obtenerProductoPorCodigo,
 } from "../services/productoService";
 import { compressImage } from "../utils/compressImage";
@@ -36,9 +35,6 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   const busquedaCodigoRef = useRef(null);
   const busquedaProductoRef = useRef(null);
   const debounceRef = useRef(null);
-
-  const [mostrarDialogoDuplicado, setMostrarDialogoDuplicado] = useState(false);
-  const [productoDuplicado, setProductoDuplicado] = useState(null);
 
   useEffect(() => {
     return () => {
@@ -172,7 +168,6 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
       } catch {
         fallidas++;
       }
-      // update progress (percentage)
       setCompressionProgress(Math.round(((i + 1) / totalArchivos) * 100));
     }
 
@@ -186,7 +181,6 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
       });
     }
     setComprimiendo(false);
-    // reset progress after a short delay so the bar is visible briefly
     setTimeout(() => setCompressionProgress(0), 800);
   };
 
@@ -214,16 +208,29 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     setMensaje(null);
 
     try {
-      const existente = await obtenerProductoPorCodigo(formulario.codigo.trim());
-
-      if (existente && !esEdicion) {
-        setProductoDuplicado(existente);
-        setMostrarDialogoDuplicado(true);
-        setCargando(false);
-        return;
+      if (esEdicion) {
+        await actualizarAveria(averiaEditar.id, formulario, [...fotosExistentes, ...fotosBase64]);
+        vibrar(30);
+        setMensaje({ tipo: "exito", texto: "Registro actualizado" });
+      } else {
+        const existente = await obtenerProductoPorCodigo(formulario.codigo.trim());
+        if (!existente) {
+          await agregarProducto({
+            codigo: formulario.codigo.trim(),
+            nombre: formulario.producto.trim(),
+            precio: parseFloat(formulario.precio) || 0,
+          });
+        }
+        await registrarAveria(formulario, [...fotosExistentes, ...fotosBase64]);
+        vibrar(30);
+        setMensaje({ tipo: "exito", texto: "Registro exitoso" });
       }
 
-      await guardarAveria();
+      setFormulario({ codigo: "", producto: "", precio: "", estado: "Averia", observaciones: "" });
+      setFotosBase64([]);
+      setFotosExistentes([]);
+      setResultadosBusqueda([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error(error);
       let errorMsg = "Error al guardar";
@@ -233,68 +240,9 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
         errorMsg = error.message;
       }
       setMensaje({ tipo: "error", texto: errorMsg });
-      setCargando(false);
-    }
-  };
-
-  const guardarAveria = async (actualizarProductoExistente = false) => {
-    try {
-      const todasFotos = [...fotosExistentes, ...fotosBase64];
-
-      if (esEdicion) {
-        await actualizarAveria(averiaEditar.id, formulario, todasFotos);
-        vibrar(30);
-        setMensaje({ tipo: "exito", texto: "Registro actualizado" });
-      } else {
-        if (actualizarProductoExistente && productoDuplicado) {
-          await actualizarProducto(productoDuplicado.id, {
-            codigo: formulario.codigo.trim(),
-            nombre: formulario.producto.trim(),
-            precio: parseFloat(formulario.precio) || 0,
-          });
-        } else {
-          await agregarProducto({
-            codigo: formulario.codigo.trim(),
-            nombre: formulario.producto.trim(),
-            precio: parseFloat(formulario.precio) || 0,
-          });
-        }
-        await registrarAveria(formulario, todasFotos);
-        vibrar(30);
-        setMensaje({ tipo: "exito", texto: "Registro exitoso" });
-      }
-
-      setFormulario({ codigo: "", producto: "", precio: "", estado: "Averia", observaciones: "" });
-      setFotosBase64([]);
-      setFotosExistentes([]);
-      setResultadosBusqueda([]);
-      setMostrarDialogoDuplicado(false);
-      setProductoDuplicado(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (error) {
-      console.error(error);
-      setMensaje({ tipo: "error", texto: "Error al guardar" });
     } finally {
       setCargando(false);
     }
-  };
-
-  const duplicarProducto = async () => {
-    setMostrarDialogoDuplicado(false);
-    setCargando(true);
-    await guardarAveria(false);
-  };
-
-  const actualizarProductoExistente = async () => {
-    setMostrarDialogoDuplicado(false);
-    setCargando(true);
-    await guardarAveria(true);
-  };
-
-  const cancelarDuplicado = () => {
-    setMostrarDialogoDuplicado(false);
-    setProductoDuplicado(null);
-    setCargando(false);
   };
 
   return (
@@ -471,47 +419,6 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
           </button>
         )}
       </div>
-
-      {mostrarDialogoDuplicado && productoDuplicado && (
-        <div className="dialogo-overlay">
-          <div className="dialogo-contenido">
-            <h3>Producto Duplicado</h3>
-            <p>
-              El código <strong>{productoDuplicado.codigo}</strong> ya existe en la base de datos.
-            </p>
-            <p>
-              <strong>Producto actual:</strong> {productoDuplicado.nombre}
-            </p>
-            <p>
-              <strong>Precio actual:</strong> ${productoDuplicado.precio || 0}
-            </p>
-            <p>¿Qué deseas hacer?</p>
-            <div className="dialogo-botones">
-              <button
-                type="button"
-                className="btn-actualizar"
-                onClick={actualizarProductoExistente}
-              >
-                Actualizar Producto
-              </button>
-              <button
-                type="button"
-                className="btn-duplicar"
-                onClick={duplicarProducto}
-              >
-                Duplicar Registro
-              </button>
-              <button
-                type="button"
-                className="btn-cancelar-dialogo"
-                onClick={cancelarDuplicado}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </form>
   );
 };
