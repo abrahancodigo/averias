@@ -19,9 +19,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const perfil = await obtenerUsuarioPorUid(user.uid);
+        try {
+          const perfil = await obtenerUsuarioPorUid(user.uid);
+          setRol(perfil?.rol || "operador");
+        } catch (e) {
+          console.error("Error al obtener perfil:", e);
+          setRol("operador");
+        }
         setUsuario(user);
-        setRol(perfil?.rol || "operador");
       } else {
         setUsuario(null);
         setRol(null);

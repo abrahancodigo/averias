@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { registrarAveria, actualizarAveria } from "../services/averiaService";
-import { buscarProductos } from "../services/productoService";
+import {
+  buscarProductos,
+  agregarProducto,
+  actualizarProducto,
+  obtenerProductoPorCodigo,
+} from "../services/productoService";
 import { compressImage } from "../utils/compressImage";
-
-const vibrar = (ms = 10) => {
-  if (navigator.vibrate) navigator.vibrate(ms);
-};
+import { vibrar } from "../utils/vibrar";
 
 const ESTADOS = ["Averia", "Faltante", "Sobrante"];
 
@@ -212,7 +214,6 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     setMensaje(null);
 
     try {
-      const { obtenerProductoPorCodigo } = await import("../services/productoService");
       const existente = await obtenerProductoPorCodigo(formulario.codigo.trim());
 
       if (existente && !esEdicion) {
@@ -239,27 +240,25 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   const guardarAveria = async (actualizarProductoExistente = false) => {
     try {
       const todasFotos = [...fotosExistentes, ...fotosBase64];
-      const { agregarProducto, actualizarProducto } = await import("../services/productoService");
-
-      if (actualizarProductoExistente && productoDuplicado) {
-        await actualizarProducto(productoDuplicado.id, {
-          codigo: formulario.codigo.trim(),
-          nombre: formulario.producto.trim(),
-          precio: parseFloat(formulario.precio) || 0,
-        });
-      } else {
-        await agregarProducto({
-          codigo: formulario.codigo.trim(),
-          nombre: formulario.producto.trim(),
-          precio: parseFloat(formulario.precio) || 0,
-        });
-      }
 
       if (esEdicion) {
         await actualizarAveria(averiaEditar.id, formulario, todasFotos);
         vibrar(30);
         setMensaje({ tipo: "exito", texto: "Registro actualizado" });
       } else {
+        if (actualizarProductoExistente && productoDuplicado) {
+          await actualizarProducto(productoDuplicado.id, {
+            codigo: formulario.codigo.trim(),
+            nombre: formulario.producto.trim(),
+            precio: parseFloat(formulario.precio) || 0,
+          });
+        } else {
+          await agregarProducto({
+            codigo: formulario.codigo.trim(),
+            nombre: formulario.producto.trim(),
+            precio: parseFloat(formulario.precio) || 0,
+          });
+        }
         await registrarAveria(formulario, todasFotos);
         vibrar(30);
         setMensaje({ tipo: "exito", texto: "Registro exitoso" });

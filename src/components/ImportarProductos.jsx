@@ -1,10 +1,7 @@
 import { useState, useRef } from "react";
 import ExcelJS from "exceljs";
 import { agregarProductos, eliminarProductos, obtenerProductos, actualizarProducto, invalidarCache } from "../services/productoService";
-
-const vibrar = (ms = 10) => {
-  if (navigator.vibrate) navigator.vibrate(ms);
-};
+import { vibrar } from "../utils/vibrar";
 
 const ImportarProductos = () => {
   const [productos, setProductos] = useState([]);

@@ -2,10 +2,7 @@ import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { crearUsuario } from "../services/userService";
-
-const vibrar = (ms = 10) => {
-  if (navigator.vibrate) navigator.vibrate(ms);
-};
+import { vibrar } from "../utils/vibrar";
 
 const Signup = ({ onVolver }) => {
   const [email, setEmail] = useState("");

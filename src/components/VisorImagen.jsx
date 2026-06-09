@@ -7,7 +7,6 @@ const VisorImagen = ({ src, alt, onCerrar }) => {
   const ultimaPosicion = useRef({ x: 0, y: 0 });
   const distanciaInicial = useRef(null);
   const escalaInicial = useRef(1);
-  const imagenRef = useRef(null);
 
   useEffect(() => {
     const manejarTecla = (e) => {
@@ -115,12 +114,11 @@ const VisorImagen = ({ src, alt, onCerrar }) => {
       )}
 
       <img
-        ref={imagenRef}
         src={src}
         alt={alt || ""}
         className="visor-imagen"
         style={estilo}
-        onClick={(e) => {
+        onDoubleClick={(e) => {
           e.stopPropagation();
           manejarDobleClick();
         }}

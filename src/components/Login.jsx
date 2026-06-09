@@ -2,10 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../config/firebase";
-
-const vibrar = (ms = 10) => {
-  if (navigator.vibrate) navigator.vibrate(ms);
-};
+import { vibrar } from "../utils/vibrar";
 
 const Login = ({ onCrearCuenta }) => {
   const { login } = useAuth();

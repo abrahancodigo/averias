@@ -117,8 +117,8 @@ export const obtenerProductoPorCodigo = async (codigo) => {
   );
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
-  const doc = snapshot.docs[0];
-  return { id: doc.id, ...doc.data() };
+  const docSnap = snapshot.docs[0];
+  return { id: docSnap.id, ...docSnap.data() };
 };
 
 export const actualizarProducto = async (id, producto) => {

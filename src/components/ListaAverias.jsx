@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import VisorImagen from "./VisorImagen";
@@ -13,10 +13,7 @@ import {
   limit,
   startAfter,
 } from "firebase/firestore";
-
-const vibrar = (ms = 10) => {
-  if (navigator.vibrate) navigator.vibrate(ms);
-};
+import { vibrar } from "../utils/vibrar";
 
 const PAGE_SIZE = 20;
 
@@ -28,8 +25,11 @@ const ListaAverias = ({ onEditar }) => {
   const [mensaje, setMensaje] = useState(null);
   const [lastVisible, setLastVisible] = useState(null);
   const [hayMas, setHayMas] = useState(false);
+  const cargandoRef = useRef(false);
 
   const cargarAverias = useCallback(async (reset = true) => {
+    if (cargandoRef.current) return;
+    cargandoRef.current = true;
     setCargando(true);
     try {
       let q;
@@ -65,11 +65,13 @@ const ListaAverias = ({ onEditar }) => {
       setError("Error al cargar los registros");
     } finally {
       setCargando(false);
+      cargandoRef.current = false;
     }
   }, [lastVisible]);
 
   useEffect(() => {
     cargarAverias(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const manejarEliminar = async (id) => {
@@ -88,63 +90,70 @@ const ListaAverias = ({ onEditar }) => {
   };
 
   if (cargando && averias.length === 0) return <div className="cargando">Cargando...</div>;
-  if (error) return <div className="error">{error}</div>;
-  if (averias.length === 0) return <div className="vacia">No hay registros</div>;
 
   return (
     <div className="lista">
+      {error && <div className="mensaje mensaje-error">{error}</div>}
       {mensaje && (
         <div className={`mensaje mensaje-${mensaje.tipo}`}>{mensaje.texto}</div>
       )}
-      <h2>Registros ({averias.length})</h2>
-      {averias.map((averia) => (
-        <div key={averia.id} className="card-averia stagger-item">
-          <div className="card-header">
-            <span className="codigo">{averia.codigo}</span>
-            <span
-              className={`estado estado-${averia.estado?.toLowerCase().replace(/\s/g, "-")}`}
-            >
-              {averia.estado}
-            </span>
-          </div>
-          <div className="card-body">
-            <p>
-              <strong>Producto:</strong> {averia.producto}
-            </p>
-            {averia.observaciones && (
-              <p>
-                <strong>Observaciones:</strong> {averia.observaciones}
-              </p>
-            )}
-            <p className="fecha">
-              {format(new Date(averia.created_at), "dd MMM yyyy, HH:mm", {
-                locale: es,
-              })}
-            </p>
-          </div>
-          {averia.fotos && averia.fotos.length > 0 && (
-            <div className="card-fotos">
-              {averia.fotos.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt={`Foto ${i + 1}`}
-                  className="foto-averia"
-                  onClick={() => setImagenVisor(src)}
-                />
-              ))}
+      {averias.length === 0 && !error ? (
+        <div className="vacia">No hay registros</div>
+      ) : (
+        <>
+          <h2>Registros ({averias.length})</h2>
+          {averias.map((averia) => (
+            <div key={averia.id} className="card-averia stagger-item">
+              <div className="card-header">
+                <span className="codigo">{averia.codigo}</span>
+                <span
+                  className={`estado estado-${averia.estado?.toLowerCase().replace(/\s/g, "-")}`}
+                >
+                  {averia.estado}
+                </span>
+              </div>
+              <div className="card-body">
+                <p>
+                  <strong>Producto:</strong> {averia.producto}
+                </p>
+                {averia.observaciones && (
+                  <p>
+                    <strong>Observaciones:</strong> {averia.observaciones}
+                  </p>
+                )}
+                <p className="fecha">
+                  {averia.created_at
+                    ? format(new Date(averia.created_at), "dd MMM yyyy, HH:mm", {
+                        locale: es,
+                      })
+                    : "Sin fecha"}
+                </p>
+              </div>
+              {averia.fotos && averia.fotos.length > 0 && (
+                <div className="card-fotos">
+                  {averia.fotos.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt={`Foto ${i + 1}`}
+                      className="foto-averia"
+                      onClick={() => setImagenVisor(src)}
+                    />
+                  ))}
+                </div>
+              )}
+              <div className="card-footer">
+                <button className="btn-editar" onClick={() => onEditar(averia)}>
+                  Editar
+                </button>
+                <button className="btn-eliminar" onClick={() => manejarEliminar(averia.id)}>
+                  Eliminar
+                </button>
+              </div>
             </div>
-          )}
-          <div className="card-footer">
-            <button className="btn-editar" onClick={() => onEditar(averia)}>
-              Editar
-            </button>
-            <button className="btn-eliminar" onClick={() => manejarEliminar(averia.id)}>
-              Eliminar
-            </button>
-          </div>
-        </div>
-      ))}
+          ))}
+        </>
+      )}
 
       {hayMas && (
         <button

@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { obtenerAveriasPorFecha, obtenerAverias } from "../services/averiaService";
 import { exportarAveriasAExcel } from "../services/excelService";
-
-const vibrar = (ms = 10) => {
-  if (navigator.vibrate) navigator.vibrate(ms);
-};
+import { vibrar } from "../utils/vibrar";
 
 const ExportarExcel = () => {
   const [fechaInicio, setFechaInicio] = useState("");

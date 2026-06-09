@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase";
 import {
@@ -7,10 +7,7 @@ import {
   obtenerUsuariosPaginados,
   actualizarRol,
 } from "../services/userService";
-
-const vibrar = (ms = 10) => {
-  if (navigator.vibrate) navigator.vibrate(ms);
-};
+import { vibrar } from "../utils/vibrar";
 
 const ROLES = ["admin", "operador", "visor"];
 
@@ -24,8 +21,11 @@ const AdminUsers = () => {
   const [mensaje, setMensaje] = useState(null);
   const [lastVisible, setLastVisible] = useState(null);
   const [hayMas, setHayMas] = useState(false);
+  const cargandoRef = useRef(false);
 
   const cargarUsuarios = useCallback(async (reset = true) => {
+    if (cargandoRef.current) return;
+    cargandoRef.current = true;
     try {
       const result = await obtenerUsuariosPaginados(
         reset ? null : lastVisible
@@ -41,11 +41,13 @@ const AdminUsers = () => {
       console.error(e);
     } finally {
       setCargando(false);
+      cargandoRef.current = false;
     }
   }, [lastVisible]);
 
   useEffect(() => {
     cargarUsuarios(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const crearUsuarioHandler = async (e) => {

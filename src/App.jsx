@@ -9,6 +9,7 @@ import AdminUsers from "./components/AdminUsers";
 import ImportarProductos from "./components/ImportarProductos";
 import ToggleTema from "./components/ToggleTema";
 import { useSwipeNavigation } from "./hooks/useSwipeNavigation";
+import { vibrar } from "./utils/vibrar";
 import "./App.css";
 
 const Icono = ({ tipo }) => {
@@ -93,10 +94,6 @@ const MenuIcono = ({ tipo }) => {
     ),
   };
   return iconos[tipo] || null;
-};
-
-const vibrar = (ms = 10) => {
-  if (navigator.vibrate) navigator.vibrate(ms);
 };
 
 const TABS_OPERADOR = [

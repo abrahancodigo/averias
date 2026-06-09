@@ -604,7 +604,7 @@ html[data-theme] body {
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  max-width: 480px;
+  max-width: 800px;
   display: flex;
   background: var(--app-surface);
   border-top: 1px solid var(--border-color);
@@ -931,18 +931,6 @@ html[data-theme] body {
   font-weight: 500;
   display: flex;
   align-items: center;
-}
-
-.mensaje-exito {
-background: var(--success-bg);
-color: var(--success);
-border: 1px solid rgba(22, 163, 74, 0.2);
-}
-
-.mensaje-error {
-background: var(--danger-bg);
-color: var(--danger);
-border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
 /* LISTA */
@@ -1775,13 +1763,8 @@ transition: var(--transition-theme);
   animation: fadeSlideUp 0.22s ease-out;
 }
 
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 /* CARD PRESS EFFECT */
-.averia-card:active {
+.card-averia:active {
   transform: scale(0.98);
   transition: transform 0.1s;
 }

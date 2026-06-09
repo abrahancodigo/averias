@@ -9,7 +9,6 @@ import {
   orderBy,
   limit,
   startAfter,
-  getDoc,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
@@ -31,8 +30,8 @@ export const obtenerUsuarioPorUid = async (uid) => {
   const q = query(collection(db, COLLECTION), where("uid", "==", uid), limit(1));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
-  const doc = snapshot.docs[0];
-  return { id: doc.id, ...doc.data() };
+  const docSnap = snapshot.docs[0];
+  return { id: docSnap.id, ...docSnap.data() };
 };
 
 export const actualizarRol = async (id, nuevoRol) => {

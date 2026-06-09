@@ -78,8 +78,9 @@ export const exportarAveriasAExcel = async (averias) => {
     if (averia.fotos && averia.fotos.length > 0) {
       try {
         const base64 = await imagenABase64(averia.fotos[0]);
+        const rawBase64 = base64.includes(",") ? base64.split(",")[1] : base64;
         const imageId = workbook.addImage({
-          base64: base64,
+          base64: rawBase64,
           extension: "jpeg",
         });
 
