@@ -8,20 +8,17 @@ import {
 import { subirMultiplesImagenes } from "../services/imageService";
 import { compressImage } from "../utils/compressImage";
 import { vibrar } from "../utils/vibrar";
-import { formatPrice } from "../utils/formatPrice";
 
 const ESTADOS = ["Averia", "Faltante", "Sobrante"];
+
+const itemVacio = () => ({ codigo: "", producto: "", precio: "", cantidad: 1 });
 
 const FormAveria = ({ averiaEditar, onCancelar }) => {
   const esEdicion = !!averiaEditar;
 
-  const [formulario, setFormulario] = useState({
-    codigo: "",
-    producto: "",
-    precio: "",
-    estado: "Averia",
-    observaciones: "",
-  });
+  const [items, setItems] = useState([itemVacio()]);
+  const [estado, setEstado] = useState("Averia");
+  const [observaciones, setObservaciones] = useState("");
   const [fotosComprimidas, setFotosComprimidas] = useState([]);
   const [fotosExistentes, setFotosExistentes] = useState([]);
   const [comprimiendo, setComprimiendo] = useState(false);
@@ -33,9 +30,9 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
   const [buscando, setBuscando] = useState(false);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  const [itemBusquedaActivo, setItemBusquedaActivo] = useState(null);
   const [campoBusquedaActivo, setCampoBusquedaActivo] = useState(null);
-  const busquedaCodigoRef = useRef(null);
-  const busquedaProductoRef = useRef(null);
+  const busquedaRefs = useRef([]);
   const debounceRef = useRef(null);
 
   useEffect(() => {
@@ -46,22 +43,32 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
 
   useEffect(() => {
     if (averiaEditar) {
-      setFormulario({
-        codigo: averiaEditar.codigo || "",
-        producto: averiaEditar.producto || "",
-        precio: averiaEditar.precio || "",
-        estado: averiaEditar.estado || "Averia",
-        observaciones: averiaEditar.observaciones || "",
-      });
+      if (averiaEditar.items && Array.isArray(averiaEditar.items)) {
+        setItems(averiaEditar.items.map((it) => ({
+          codigo: it.codigo || "",
+          producto: it.producto || "",
+          precio: it.precio ?? "",
+          cantidad: it.cantidad ?? 1,
+        })));
+      } else if (averiaEditar.codigo) {
+        setItems([{
+          codigo: averiaEditar.codigo || "",
+          producto: averiaEditar.producto || "",
+          precio: averiaEditar.precio ?? "",
+          cantidad: 1,
+        }]);
+      }
+      setEstado(averiaEditar.estado || "Averia");
+      setObservaciones(averiaEditar.observaciones || "");
       setFotosExistentes(averiaEditar.fotos || []);
     }
   }, [averiaEditar]);
 
   useEffect(() => {
     const manejarClicFuera = (e) => {
-      const enCodigo = busquedaCodigoRef.current && busquedaCodigoRef.current.contains(e.target);
-      const enProducto = busquedaProductoRef.current && busquedaProductoRef.current.contains(e.target);
-      if (!enCodigo && !enProducto) {
+      const refs = busquedaRefs.current || [];
+      const dentroDeAlguno = refs.some((ref) => ref && ref.contains(e.target));
+      if (!dentroDeAlguno) {
         setMostrarSugerencias(false);
       }
     };
@@ -69,18 +76,29 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     return () => document.removeEventListener("mousedown", manejarClicFuera);
   }, []);
 
-  const manejarCambio = (e) => {
-    setFormulario({ ...formulario, [e.target.name]: e.target.value });
+  const actualizarItem = (index, campo, valor) => {
+    setItems((prev) => prev.map((it, i) => i === index ? { ...it, [campo]: valor } : it));
   };
 
-  const manejarBusqueda = (e) => {
-    const { name, value } = e.target;
-    setFormulario({ ...formulario, [name]: value });
-    setCampoBusquedaActivo(name);
+  const agregarItem = () => {
+    setItems((prev) => [...prev, itemVacio()]);
+    vibrar(15);
+  };
+
+  const eliminarItem = (index) => {
+    if (items.length <= 1) return;
+    setItems((prev) => prev.filter((_, i) => i !== index));
+    vibrar(15);
+  };
+
+  const manejarBusqueda = (index, campo, valor) => {
+    actualizarItem(index, campo, valor);
+    setItemBusquedaActivo(index);
+    setCampoBusquedaActivo(campo);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (value.trim().length < 2) {
+    if (valor.trim().length < 2) {
       setResultadosBusqueda([]);
       setMostrarSugerencias(false);
       return;
@@ -89,7 +107,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     debounceRef.current = setTimeout(async () => {
       setBuscando(true);
       try {
-        const resultados = await buscarProductos(value);
+        const resultados = await buscarProductos(valor);
         setResultadosBusqueda(resultados);
         setMostrarSugerencias(resultados.length > 0);
       } catch (err) {
@@ -100,22 +118,25 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     }, 150);
   };
 
-  const seleccionarProducto = (producto) => {
-    setFormulario({
-      ...formulario,
+  const seleccionarProducto = (index, producto) => {
+    setItems((prev) => prev.map((it, i) => i === index ? {
+      ...it,
       codigo: producto.codigo || "",
       producto: producto.nombre || "",
-      precio: producto.precio || "",
-    });
+      precio: producto.precio ?? "",
+    } : it));
     setMostrarSugerencias(false);
     setResultadosBusqueda([]);
+    setItemBusquedaActivo(null);
     setCampoBusquedaActivo(null);
   };
 
-  const renderSugerencias = (campo) => {
-    if (!mostrarSugerencias || campoBusquedaActivo !== campo) return null;
+  const renderSugerencias = (index, campo) => {
+    if (!mostrarSugerencias || itemBusquedaActivo !== index || campoBusquedaActivo !== campo) return null;
 
-    if (resultadosBusqueda.length === 0 && formulario[campo].trim().length >= 2) {
+    const valorActual = items[index]?.[campo] || "";
+
+    if (resultadosBusqueda.length === 0 && valorActual.trim().length >= 2) {
       return (
         <div className="sugerencias">
           <div className="sugerencia-vacia">Sin resultados</div>
@@ -132,14 +153,14 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
             key={p.id}
             type="button"
             className="sugerencia-item"
-            onClick={() => seleccionarProducto(p)}
+            onClick={() => seleccionarProducto(index, p)}
           >
             <div className="sugerencia-info">
               <span className="sugerencia-codigo">{p.codigo}</span>
               <span className="sugerencia-nombre">{p.nombre}</span>
             </div>
             {p.precio > 0 && (
-              <span className="sugerencia-precio">{formatPrice(p.precio)}</span>
+              <span className="sugerencia-precio">${p.precio.toLocaleString("es")}</span>
             )}
           </button>
         ))}
@@ -197,12 +218,9 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   const manejarSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formulario.codigo.trim()) {
-      setMensaje({ tipo: "error", texto: "El codigo es obligatorio" });
-      return;
-    }
-    if (!formulario.producto.trim()) {
-      setMensaje({ tipo: "error", texto: "El producto es obligatorio" });
+    const itemsValidos = items.filter((it) => it.codigo.trim() && it.producto.trim());
+    if (itemsValidos.length === 0) {
+      setMensaje({ tipo: "error", texto: "Agrega al menos un producto con codigo y nombre" });
       return;
     }
 
@@ -211,6 +229,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
 
     try {
       let idAveria;
+      const dataAveria = { items: itemsValidos, estado, observaciones };
 
       if (esEdicion) {
         idAveria = averiaEditar.id;
@@ -222,20 +241,22 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
         }
 
         const todasLasUrls = [...fotosExistentes, ...urlsNuevas];
-        await actualizarAveria(idAveria, formulario, todasLasUrls);
+        await actualizarAveria(idAveria, dataAveria, todasLasUrls);
         vibrar(30);
         setMensaje({ tipo: "exito", texto: "Registro actualizado" });
       } else {
-        const existente = await obtenerProductoPorCodigo(formulario.codigo.trim());
-        if (!existente) {
-          await agregarProducto({
-            codigo: formulario.codigo.trim(),
-            nombre: formulario.producto.trim(),
-            precio: parseFloat(formulario.precio) || 0,
-          });
+        for (const item of itemsValidos) {
+          const existente = await obtenerProductoPorCodigo(item.codigo.trim());
+          if (!existente) {
+            await agregarProducto({
+              codigo: item.codigo.trim(),
+              nombre: item.producto.trim(),
+              precio: parseFloat(item.precio) || 0,
+            });
+          }
         }
 
-        idAveria = await registrarAveria(formulario, []);
+        idAveria = await registrarAveria(dataAveria, []);
 
         const blobsNuevos = fotosComprimidas.map((f) => f.blob);
         if (blobsNuevos.length > 0) {
@@ -249,7 +270,9 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
         setMensaje({ tipo: "exito", texto: "Registro exitoso" });
       }
 
-      setFormulario({ codigo: "", producto: "", precio: "", estado: "Averia", observaciones: "" });
+      setItems([itemVacio()]);
+      setEstado("Averia");
+      setObservaciones("");
       setFotosComprimidas([]);
       setFotosExistentes([]);
       setResultadosBusqueda([]);
@@ -276,75 +299,103 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
         <div className={`mensaje mensaje-${mensaje.tipo}`}>{mensaje.texto}</div>
       )}
 
-      <div className="campo" ref={busquedaCodigoRef}>
-        <label htmlFor="codigo">Codigo *</label>
-        <div className="busqueda-wrapper">
-          <input
-            type="text"
-            id="codigo"
-            name="codigo"
-            value={formulario.codigo}
-            onChange={manejarBusqueda}
-            onFocus={() => {
-              if (resultadosBusqueda.length > 0 && campoBusquedaActivo === "codigo") {
-                setMostrarSugerencias(true);
-              }
-            }}
-            placeholder="Ej: AVG-001"
-            required
-          />
-          {buscando && campoBusquedaActivo === "codigo" && (
-            <span className="buscando-indicator">...</span>
-          )}
-        </div>
-        {renderSugerencias("codigo")}
-      </div>
+      <div className="items-container">
+        {items.map((item, index) => (
+          <div key={index} className="item-row">
+            <div className="item-header">
+              <span className="item-num">#{index + 1}</span>
+              {items.length > 1 && (
+                <button
+                  type="button"
+                  className="btn-eliminar-item"
+                  onClick={() => eliminarItem(index)}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
-      <div className="campo" ref={busquedaProductoRef}>
-        <label htmlFor="producto">Producto *</label>
-        <div className="busqueda-wrapper">
-          <input
-            type="text"
-            id="producto"
-            name="producto"
-            value={formulario.producto}
-            onChange={manejarBusqueda}
-            onFocus={() => {
-              if (resultadosBusqueda.length > 0 && campoBusquedaActivo === "producto") {
-                setMostrarSugerencias(true);
-              }
-            }}
-            placeholder="Buscar producto..."
-            required
-          />
-          {buscando && campoBusquedaActivo === "producto" && (
-            <span className="buscando-indicator">...</span>
-          )}
-        </div>
-        {renderSugerencias("producto")}
-      </div>
+            <div className="campo" ref={(el) => { busquedaRefs.current[index] = el; }}>
+              <label>Codigo *</label>
+              <div className="busqueda-wrapper">
+                <input
+                  type="text"
+                  value={item.codigo}
+                  onChange={(e) => manejarBusqueda(index, "codigo", e.target.value)}
+                  onFocus={() => {
+                    if (resultadosBusqueda.length > 0 && itemBusquedaActivo === index && campoBusquedaActivo === "codigo") {
+                      setMostrarSugerencias(true);
+                    }
+                  }}
+                  placeholder="Ej: AVG-001"
+                  required
+                />
+                {buscando && itemBusquedaActivo === index && campoBusquedaActivo === "codigo" && (
+                  <span className="buscando-indicator">...</span>
+                )}
+              </div>
+              {renderSugerencias(index, "codigo")}
+            </div>
 
-      <div className="campo">
-        <label htmlFor="precio">Precio</label>
-        <input
-          type="number"
-          id="precio"
-          name="precio"
-          value={formulario.precio}
-          onChange={manejarCambio}
-          placeholder="0.00"
-          step="0.01"
-          min="0"
-        />
+            <div className="campo" ref={(el) => { busquedaRefs.current[index + "_prod"] = el; }}>
+              <label>Producto *</label>
+              <div className="busqueda-wrapper">
+                <input
+                  type="text"
+                  value={item.producto}
+                  onChange={(e) => manejarBusqueda(index, "producto", e.target.value)}
+                  onFocus={() => {
+                    if (resultadosBusqueda.length > 0 && itemBusquedaActivo === index && campoBusquedaActivo === "producto") {
+                      setMostrarSugerencias(true);
+                    }
+                  }}
+                  placeholder="Buscar producto..."
+                  required
+                />
+                {buscando && itemBusquedaActivo === index && campoBusquedaActivo === "producto" && (
+                  <span className="buscando-indicator">...</span>
+                )}
+              </div>
+              {renderSugerencias(index, "producto")}
+            </div>
+
+            <div className="item-cantidad-precio">
+              <div className="campo">
+                <label>Precio</label>
+                <input
+                  type="number"
+                  value={item.precio}
+                  onChange={(e) => actualizarItem(index, "precio", e.target.value)}
+                  placeholder="0"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <div className="campo">
+                <label>Cantidad</label>
+                <input
+                  type="number"
+                  value={item.cantidad}
+                  onChange={(e) => actualizarItem(index, "cantidad", e.target.value)}
+                  min="1"
+                  step="1"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <button type="button" className="btn-agregar-item" onClick={agregarItem}>
+          + Agregar producto
+        </button>
       </div>
 
       <div className="campo">
         <label htmlFor="estado">Estado</label>
         <select
           id="estado"
-          name="estado"
-          value={formulario.estado}
-          onChange={manejarCambio}
+          value={estado}
+          onChange={(e) => setEstado(e.target.value)}
         >
           {ESTADOS.map((e) => (
             <option key={e} value={e}>
@@ -358,9 +409,8 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
         <label htmlFor="observaciones">Observaciones</label>
         <textarea
           id="observaciones"
-          name="observaciones"
-          value={formulario.observaciones}
-          onChange={manejarCambio}
+          value={observaciones}
+          onChange={(e) => setObservaciones(e.target.value)}
           placeholder="Notas adicionales"
           rows="2"
         />

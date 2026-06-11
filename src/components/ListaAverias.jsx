@@ -90,6 +90,21 @@ const ListaAverias = ({ onEditar }) => {
     }
   };
 
+  const obtenerItems = (averia) => {
+    if (averia.items && Array.isArray(averia.items)) {
+      return averia.items;
+    }
+    if (averia.codigo) {
+      return [{
+        codigo: averia.codigo,
+        producto: averia.producto,
+        precio: averia.precio,
+        cantidad: 1,
+      }];
+    }
+    return [];
+  };
+
   if (cargando && averias.length === 0) return <div className="cargando">Cargando...</div>;
 
   return (
@@ -103,61 +118,70 @@ const ListaAverias = ({ onEditar }) => {
       ) : (
         <>
           <h2>Registros ({averias.length})</h2>
-          {averias.map((averia) => (
-            <div key={averia.id} className="card-averia stagger-item">
-              <div className="card-header">
-                <span className="codigo">{averia.codigo}</span>
-                <span
-                  className={`estado estado-${averia.estado?.toLowerCase().replace(/\s/g, "-")}`}
-                >
-                  {averia.estado}
-                </span>
-              </div>
-              <div className="card-body">
-                <p>
-                  <strong>Producto:</strong> {averia.producto}
-                </p>
-                {averia.precio > 0 && (
-                  <p className="card-precio">
-                    <strong>Precio:</strong> {formatPrice(averia.precio)}
-                  </p>
-                )}
-                {averia.observaciones && (
-                  <p>
-                    <strong>Observaciones:</strong> {averia.observaciones}
-                  </p>
-                )}
-                <p className="fecha">
-                  {averia.created_at
-                    ? format(new Date(averia.created_at), "dd MMM yyyy, HH:mm", {
-                        locale: es,
-                      })
-                    : "Sin fecha"}
-                </p>
-              </div>
-              {averia.fotos && averia.fotos.length > 0 && (
-                <div className="card-fotos">
-                  {averia.fotos.map((src, i) => (
-                    <img
-                      key={i}
-                      src={src}
-                      alt={`Foto ${i + 1}`}
-                      className="foto-averia"
-                      onClick={() => setImagenVisor({ fotos: averia.fotos, indice: i })}
-                    />
-                  ))}
+          {averias.map((averia) => {
+            const items = obtenerItems(averia);
+            return (
+              <div key={averia.id} className="card-averia stagger-item">
+                <div className="card-header">
+                  <span className="codigo">
+                    {items.length === 1 ? items[0].codigo : `${items.length} productos`}
+                  </span>
+                  <span
+                    className={`estado estado-${averia.estado?.toLowerCase().replace(/\s/g, "-")}`}
+                  >
+                    {averia.estado}
+                  </span>
                 </div>
-              )}
-              <div className="card-footer">
-                <button className="btn-editar" onClick={() => onEditar(averia)}>
-                  Editar
-                </button>
-                <button className="btn-eliminar" onClick={() => manejarEliminar(averia.id)}>
-                  Eliminar
-                </button>
+                <div className="card-body">
+                  <div className="card-items">
+                    {items.map((item, idx) => (
+                      <div key={idx} className="card-item-fila">
+                        <span className="card-item-codigo">{item.codigo}</span>
+                        <span className="card-item-nombre">{item.producto}</span>
+                        <span className="card-item-detalle">
+                          {item.precio > 0 && formatPrice(item.precio)}
+                          {item.cantidad > 1 && ` x${item.cantidad}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {averia.observaciones && (
+                    <p>
+                      <strong>Observaciones:</strong> {averia.observaciones}
+                    </p>
+                  )}
+                  <p className="fecha">
+                    {averia.created_at
+                      ? format(new Date(averia.created_at), "dd MMM yyyy, HH:mm", {
+                          locale: es,
+                        })
+                      : "Sin fecha"}
+                  </p>
+                </div>
+                {averia.fotos && averia.fotos.length > 0 && (
+                  <div className="card-fotos">
+                    {averia.fotos.map((src, i) => (
+                      <img
+                        key={i}
+                        src={src}
+                        alt={`Foto ${i + 1}`}
+                        className="foto-averia"
+                        onClick={() => setImagenVisor({ fotos: averia.fotos, indice: i })}
+                      />
+                    ))}
+                  </div>
+                )}
+                <div className="card-footer">
+                  <button className="btn-editar" onClick={() => onEditar(averia)}>
+                    Editar
+                  </button>
+                  <button className="btn-eliminar" onClick={() => manejarEliminar(averia.id)}>
+                    Eliminar
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </>
       )}
 

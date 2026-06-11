@@ -13,11 +13,30 @@ import { db } from "../config/firebase";
 
 const COLLECTION = "averias";
 
+const normalizarItems = (averia) => {
+  if (averia.items && Array.isArray(averia.items)) {
+    return averia.items.map((item) => ({
+      codigo: item.codigo || "",
+      producto: item.producto || "",
+      precio: parseFloat(item.precio) || 0,
+      cantidad: parseInt(item.cantidad, 10) || 1,
+    }));
+  }
+  if (averia.codigo) {
+    return [{
+      codigo: averia.codigo || "",
+      producto: averia.producto || "",
+      precio: parseFloat(averia.precio) || 0,
+      cantidad: parseInt(averia.cantidad, 10) || 1,
+    }];
+  }
+  return [];
+};
+
 export const registrarAveria = async (averia, fotosBase64) => {
+  const items = normalizarItems(averia);
   const docRef = await addDoc(collection(db, COLLECTION), {
-    codigo: averia.codigo,
-    producto: averia.producto,
-    precio: parseFloat(averia.precio) || 0,
+    items,
     estado: averia.estado,
     observaciones: averia.observaciones,
     fotos: fotosBase64,
@@ -27,11 +46,10 @@ export const registrarAveria = async (averia, fotosBase64) => {
 };
 
 export const actualizarAveria = async (id, averia, fotos) => {
+  const items = normalizarItems(averia);
   const docRef = doc(db, COLLECTION, id);
   await updateDoc(docRef, {
-    codigo: averia.codigo,
-    producto: averia.producto,
-    precio: parseFloat(averia.precio) || 0,
+    items,
     estado: averia.estado,
     observaciones: averia.observaciones,
     fotos: fotos,

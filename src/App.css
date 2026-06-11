@@ -756,6 +756,132 @@ html[data-theme] body {
   color: var(--gray-400);
 }
 
+/* ITEMS CONTAINER */
+.items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.item-row {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-bg);
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.btn-eliminar-item {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(220,38,38,0.15);
+}
+
+.btn-eliminar-item:active {
+  transform: scale(0.9);
+  background: var(--danger);
+  color: white;
+}
+
+.item-cantidad-precio {
+  display: flex;
+  gap: 10px;
+}
+
+.item-cantidad-precio .campo {
+  flex: 1;
+}
+
+.btn-agregar-item {
+  padding: 14px;
+  background: var(--card-bg);
+  color: var(--primary);
+  border: 2px dashed var(--primary-light);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(37,99,235,0.12);
+}
+
+.btn-agregar-item:active {
+  transform: scale(0.97);
+  background: var(--primary-bg);
+}
+
+/* CARD ITEMS LIST */
+.card-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.card-item-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--gray-50);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.card-item-codigo {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.card-item-nombre {
+  flex: 1;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.card-item-detalle {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .campo-fotos {
   display: flex;
   flex-direction: column;

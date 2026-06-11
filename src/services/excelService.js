@@ -33,6 +33,21 @@ const detectarExtension = (url, contentType) => {
   return "jpeg";
 };
 
+const obtenerItems = (averia) => {
+  if (averia.items && Array.isArray(averia.items)) {
+    return averia.items;
+  }
+  if (averia.codigo) {
+    return [{
+      codigo: averia.codigo,
+      producto: averia.producto,
+      precio: averia.precio,
+      cantidad: 1,
+    }];
+  }
+  return [];
+};
+
 export const exportarAveriasAExcel = async (averias) => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Sistema de Averias";
@@ -54,6 +69,8 @@ export const exportarAveriasAExcel = async (averias) => {
     { header: "Fecha", key: "fecha", width: 18 },
     { header: "Producto", key: "producto", width: 25 },
     { header: "Precio", key: "precio", width: 15 },
+    { header: "Cantidad", key: "cantidad", width: 12 },
+    { header: "Subtotal", key: "subtotal", width: 15 },
     { header: "Estado", key: "estado", width: 15 },
     { header: "Observaciones", key: "observaciones", width: 35 },
     { header: "Foto", key: "foto", width: 35 },
@@ -69,62 +86,75 @@ export const exportarAveriasAExcel = async (averias) => {
   });
   sheet.getRow(1).height = 25;
 
+  let rowIndex = 0;
   for (let i = 0; i < averias.length; i++) {
     const averia = averias[i];
+    const items = obtenerItems(averia);
     const fechaFormatted = format(
       new Date(averia.created_at),
       "dd/MM/yyyy HH:mm",
       { locale: es }
     );
 
-    const rowData = {
-      codigo: averia.codigo || "",
-      fecha: fechaFormatted,
-      producto: averia.producto || "",
-      precio: averia.precio || 0,
-      estado: averia.estado || "",
-      observaciones: averia.observaciones || "",
-      foto: "",
-    };
+    for (let j = 0; j < items.length; j++) {
+      const item = items[j];
+      const precio = parseFloat(item.precio) || 0;
+      const cantidad = parseInt(item.cantidad, 10) || 1;
+      const subtotal = precio * cantidad;
 
-    const row = sheet.addRow(rowData);
-    row.alignment = { vertical: "middle", wrapText: true };
-
-    row.eachCell((cell) => {
-      cell.border = {
-        bottom: { style: "thin", color: { argb: "FFD1D5DB" } },
+      const rowData = {
+        codigo: item.codigo || "",
+        fecha: j === 0 ? fechaFormatted : "",
+        producto: item.producto || "",
+        precio: precio,
+        cantidad: cantidad,
+        subtotal: subtotal,
+        estado: j === 0 ? (averia.estado || "") : "",
+        observaciones: j === 0 ? (averia.observaciones || "") : "",
+        foto: "",
       };
-    });
 
-    if (averia.fotos && averia.fotos.length > 0) {
-      try {
-        const url = averia.fotos[0];
-        const response = await fetch(url, { mode: "cors" });
-        const contentType = response.headers.get("content-type");
-        const extension = detectarExtension(url, contentType);
+      const row = sheet.addRow(rowData);
+      row.alignment = { vertical: "middle", wrapText: true };
 
-        const base64 = await imagenABase64(url);
-        const rawBase64 = base64.includes(",") ? base64.split(",")[1] : base64;
-        const imageId = workbook.addImage({
-          base64: rawBase64,
-          extension: extension,
-        });
+      row.eachCell((cell) => {
+        cell.border = {
+          bottom: { style: "thin", color: { argb: "FFD1D5DB" } },
+        };
+      });
 
-        row.height = 120;
-        sheet.addImage(imageId, {
-          tl: { col: 6, row: i + 1 },
-          ext: { width: 245, height: 120 },
-          editAs: "oneCell",
-        });
-      } catch (e) {
-        console.warn("Error al cargar imagen para Excel:", e);
+      if (j === 0 && averia.fotos && averia.fotos.length > 0) {
+        try {
+          const url = averia.fotos[0];
+          const response = await fetch(url, { mode: "cors" });
+          const contentType = response.headers.get("content-type");
+          const extension = detectarExtension(url, contentType);
+
+          const base64 = await imagenABase64(url);
+          const rawBase64 = base64.includes(",") ? base64.split(",")[1] : base64;
+          const imageId = workbook.addImage({
+            base64: rawBase64,
+            extension: extension,
+          });
+
+          row.height = 120;
+          sheet.addImage(imageId, {
+            tl: { col: 8, row: rowIndex + 1 },
+            ext: { width: 245, height: 120 },
+            editAs: "oneCell",
+          });
+        } catch (e) {
+          console.warn("Error al cargar imagen para Excel:", e);
+        }
       }
+
+      rowIndex++;
     }
   }
 
   sheet.autoFilter = {
     from: "A1",
-    to: `G${averias.length + 1}`,
+    to: `I${rowIndex + 1}`,
   };
 
   const fileName = `averias_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`;
