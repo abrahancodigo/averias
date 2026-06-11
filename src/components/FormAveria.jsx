@@ -5,8 +5,10 @@ import {
   agregarProducto,
   obtenerProductoPorCodigo,
 } from "../services/productoService";
+import { subirMultiplesImagenes } from "../services/imageService";
 import { compressImage } from "../utils/compressImage";
 import { vibrar } from "../utils/vibrar";
+import { formatPrice } from "../utils/formatPrice";
 
 const ESTADOS = ["Averia", "Faltante", "Sobrante"];
 
@@ -20,7 +22,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     estado: "Averia",
     observaciones: "",
   });
-  const [fotosBase64, setFotosBase64] = useState([]);
+  const [fotosComprimidas, setFotosComprimidas] = useState([]);
   const [fotosExistentes, setFotosExistentes] = useState([]);
   const [comprimiendo, setComprimiendo] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState(0);
@@ -137,7 +139,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
               <span className="sugerencia-nombre">{p.nombre}</span>
             </div>
             {p.precio > 0 && (
-              <span className="sugerencia-precio">${p.precio.toLocaleString("es-CO")}</span>
+              <span className="sugerencia-precio">{formatPrice(p.precio)}</span>
             )}
           </button>
         ))}
@@ -147,7 +149,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
 
   const manejarFotos = async (e) => {
     const archivos = Array.from(e.target.files);
-    const total = fotosExistentes.length + fotosBase64.length + archivos.length;
+    const total = fotosExistentes.length + fotosComprimidas.length + archivos.length;
     if (total > 5) {
       setMensaje({ tipo: "error", texto: "Maximo 5 fotos" });
       return;
@@ -172,7 +174,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     }
 
     if (exitosas.length > 0) {
-      setFotosBase64((prev) => [...prev, ...exitosas]);
+      setFotosComprimidas((prev) => [...prev, ...exitosas]);
     }
     if (fallidas > 0) {
       setMensaje({
@@ -185,7 +187,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
   };
 
   const eliminarFotoNueva = (index) => {
-    setFotosBase64((prev) => prev.filter((_, i) => i !== index));
+    setFotosComprimidas((prev) => prev.filter((_, i) => i !== index));
   };
 
   const eliminarFotoExistente = (index) => {
@@ -208,8 +210,19 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
     setMensaje(null);
 
     try {
+      let idAveria;
+
       if (esEdicion) {
-        await actualizarAveria(averiaEditar.id, formulario, [...fotosExistentes, ...fotosBase64]);
+        idAveria = averiaEditar.id;
+
+        const blobsNuevos = fotosComprimidas.map((f) => f.blob);
+        let urlsNuevas = [];
+        if (blobsNuevos.length > 0) {
+          urlsNuevas = await subirMultiplesImagenes(idAveria, blobsNuevos);
+        }
+
+        const todasLasUrls = [...fotosExistentes, ...urlsNuevas];
+        await actualizarAveria(idAveria, formulario, todasLasUrls);
         vibrar(30);
         setMensaje({ tipo: "exito", texto: "Registro actualizado" });
       } else {
@@ -221,13 +234,23 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
             precio: parseFloat(formulario.precio) || 0,
           });
         }
-        await registrarAveria(formulario, [...fotosExistentes, ...fotosBase64]);
+
+        idAveria = await registrarAveria(formulario, []);
+
+        const blobsNuevos = fotosComprimidas.map((f) => f.blob);
+        if (blobsNuevos.length > 0) {
+          const urls = await subirMultiplesImagenes(idAveria, blobsNuevos);
+          const { doc, updateDoc } = await import("firebase/firestore");
+          const { db } = await import("../config/firebase");
+          await updateDoc(doc(db, "averias", idAveria), { fotos: urls });
+        }
+
         vibrar(30);
         setMensaje({ tipo: "exito", texto: "Registro exitoso" });
       }
 
       setFormulario({ codigo: "", producto: "", precio: "", estado: "Averia", observaciones: "" });
-      setFotosBase64([]);
+      setFotosComprimidas([]);
       setFotosExistentes([]);
       setResultadosBusqueda([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -379,7 +402,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
           style={{ display: "none" }}
         />
 
-        {(fotosExistentes.length > 0 || fotosBase64.length > 0) && (
+        {(fotosExistentes.length > 0 || fotosComprimidas.length > 0) && (
           <div className="galeria">
             {fotosExistentes.map((src, i) => (
               <div key={`ex-${i}`} className="foto-preview">
@@ -393,9 +416,9 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
                 </button>
               </div>
             ))}
-            {fotosBase64.map((src, i) => (
+            {fotosComprimidas.map((foto, i) => (
               <div key={`nw-${i}`} className="foto-preview">
-                <img src={src} alt={`Nueva ${i + 1}`} />
+                <img src={foto.preview} alt={`Nueva ${i + 1}`} />
                 <button
                   type="button"
                   className="btn-eliminar-foto"
@@ -411,7 +434,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
 
       <div className="botones-form">
         <button type="submit" className="btn-enviar" disabled={cargando || comprimiendo}>
-          {cargando ? "Guardando..." : esEdicion ? "Actualizar" : "Registrar"}
+          {cargando ? "Subiendo..." : esEdicion ? "Actualizar" : "Registrar"}
         </button>
         {esEdicion && (
           <button type="button" className="btn-cancelar" onClick={onCancelar}>

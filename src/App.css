@@ -1044,6 +1044,12 @@ html[data-theme] body {
   justify-content: flex-end;
 }
 
+.card-precio {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 15px;
+}
+
 .btn-editar {
   padding: 10px 20px;
   background: var(--primary-bg);
@@ -1638,6 +1644,7 @@ transition: var(--transition-theme);
   animation: fadeIn 0.2s ease;
   touch-action: none;
   user-select: none;
+  overflow: hidden;
 }
 
 @keyframes fadeIn {
@@ -1704,6 +1711,56 @@ transition: var(--transition-theme);
 @keyframes zoomIn {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+.visor-contador {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1001;
+  backdrop-filter: blur(8px);
+}
+
+.visor-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  transition: all 0.15s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.visor-nav:active {
+  transform: translateY(-50%) scale(0.9);
+  background: rgba(255,255,255,0.3);
+}
+
+.visor-nav-izq {
+  left: 16px;
+}
+
+.visor-nav-der {
+  right: 16px;
 }
 
 /* CARGANDO / VACIO */

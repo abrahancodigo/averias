@@ -30,9 +30,8 @@ export function compressImage(file) {
                 return;
               }
               if (blob.size <= MAX_SIZE_BYTES) {
-                const fr = new FileReader();
-                fr.onloadend = () => resolve(fr.result);
-                fr.readAsDataURL(blob);
+                const preview = URL.createObjectURL(blob);
+                resolve({ blob, preview, type: blob.type });
               } else if (quality > MIN_QUALITY) {
                 quality = Math.max(quality - QUALITY_STEP, MIN_QUALITY);
                 attempt();
@@ -41,9 +40,8 @@ export function compressImage(file) {
                 quality = INITIAL_QUALITY;
                 attempt();
               } else {
-                const fr = new FileReader();
-                fr.onloadend = () => resolve(fr.result);
-                fr.readAsDataURL(blob);
+                const preview = URL.createObjectURL(blob);
+                resolve({ blob, preview, type: blob.type });
               }
             },
             "image/jpeg",

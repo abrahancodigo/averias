@@ -1,12 +1,4 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "averias",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "created_at", "order": "DESCENDING" }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }

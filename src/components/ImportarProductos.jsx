@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import ExcelJS from "exceljs";
 import { agregarProductos, eliminarProductos, obtenerProductos, actualizarProducto, invalidarCache } from "../services/productoService";
 import { vibrar } from "../utils/vibrar";
+import { formatPrice } from "../utils/formatPrice";
 
 const ImportarProductos = () => {
   const [productos, setProductos] = useState([]);
@@ -194,7 +195,7 @@ const ImportarProductos = () => {
                   <tr key={i}>
                     <td>{p.codigo}</td>
                     <td>{p.nombre}</td>
-                    <td>{p.precio != null ? p.precio : ""}</td>
+                    <td>{p.precio != null ? formatPrice(p.precio) : ""}</td>
                   </tr>
                 ))}
               </tbody>

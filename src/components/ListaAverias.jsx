@@ -14,6 +14,7 @@ import {
   startAfter,
 } from "firebase/firestore";
 import { vibrar } from "../utils/vibrar";
+import { formatPrice } from "../utils/formatPrice";
 
 const PAGE_SIZE = 20;
 
@@ -116,6 +117,11 @@ const ListaAverias = ({ onEditar }) => {
                 <p>
                   <strong>Producto:</strong> {averia.producto}
                 </p>
+                {averia.precio > 0 && (
+                  <p className="card-precio">
+                    <strong>Precio:</strong> {formatPrice(averia.precio)}
+                  </p>
+                )}
                 {averia.observaciones && (
                   <p>
                     <strong>Observaciones:</strong> {averia.observaciones}
@@ -137,7 +143,7 @@ const ListaAverias = ({ onEditar }) => {
                       src={src}
                       alt={`Foto ${i + 1}`}
                       className="foto-averia"
-                      onClick={() => setImagenVisor(src)}
+                      onClick={() => setImagenVisor({ fotos: averia.fotos, indice: i })}
                     />
                   ))}
                 </div>
@@ -167,7 +173,8 @@ const ListaAverias = ({ onEditar }) => {
 
       {imagenVisor && (
         <VisorImagen
-          src={imagenVisor}
+          fotos={imagenVisor.fotos}
+          indiceInicial={imagenVisor.indice}
           onCerrar={() => setImagenVisor(null)}
         />
       )}
