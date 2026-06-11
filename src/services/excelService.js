@@ -4,7 +4,14 @@ import { es } from "date-fns/locale";
 
 const imagenABase64 = async (url) => {
   if (url.startsWith("data:")) return url;
-  const response = await fetch(url);
+
+  const response = await fetch(url, {
+    mode: "cors",
+    headers: { "Accept": "image/*" },
+  });
+
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
   const blob = await response.blob();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -12,6 +19,18 @@ const imagenABase64 = async (url) => {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+};
+
+const detectarExtension = (url, contentType) => {
+  if (contentType && contentType.includes("png")) return "png";
+  if (contentType && contentType.includes("webp")) return "webp";
+  if (contentType && contentType.includes("gif")) return "gif";
+
+  const urlLower = url.toLowerCase();
+  if (urlLower.includes(".png")) return "png";
+  if (urlLower.includes(".webp")) return "webp";
+  if (urlLower.includes(".gif")) return "gif";
+  return "jpeg";
 };
 
 export const exportarAveriasAExcel = async (averias) => {
@@ -77,11 +96,16 @@ export const exportarAveriasAExcel = async (averias) => {
 
     if (averia.fotos && averia.fotos.length > 0) {
       try {
-        const base64 = await imagenABase64(averia.fotos[0]);
+        const url = averia.fotos[0];
+        const response = await fetch(url, { mode: "cors" });
+        const contentType = response.headers.get("content-type");
+        const extension = detectarExtension(url, contentType);
+
+        const base64 = await imagenABase64(url);
         const rawBase64 = base64.includes(",") ? base64.split(",")[1] : base64;
         const imageId = workbook.addImage({
           base64: rawBase64,
-          extension: "jpeg",
+          extension: extension,
         });
 
         row.height = 120;
