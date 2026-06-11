@@ -181,18 +181,16 @@ export const exportarAveriasAExcel = async (averias) => {
         const altoImagen = ALTO_IMAGEN_POR_FILA * numFilas;
 
         if (numFilas > 1) {
+          for (let r = grupoInicio; r <= grupoFin; r++) {
+            sheet.getRow(r).height = ALTO_IMAGEN_POR_FILA;
+          }
           sheet.mergeCells(grupoInicio, 9, grupoFin, 9);
+        } else {
+          sheet.getRow(grupoInicio).height = ALTO_IMAGEN_POR_FILA;
         }
 
         const celdaFoto = sheet.getRow(grupoInicio).getCell(9);
         celdaFoto.alignment = { vertical: "middle", horizontal: "center" };
-
-        for (let r = grupoInicio; r <= grupoFin; r++) {
-          sheet.getRow(r).height = FILA_ALTURA_BASE;
-        }
-
-        const totalAlto = FILA_ALTURA_BASE * numFilas;
-        sheet.getRow(grupoInicio).height = Math.max(totalAlto, FILA_ALTURA_BASE);
 
         sheet.addImage(imageId, {
           tl: { col: 8, row: grupoInicio - 1 },
