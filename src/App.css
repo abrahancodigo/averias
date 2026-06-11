@@ -1561,7 +1561,7 @@ transition: var(--transition-theme);
 }
 
 .tabla-scroll {
-  max-height: 300px;
+  max-height: 600px;
   overflow-y: auto;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -1597,6 +1597,107 @@ transition: var(--transition-theme);
 
 .tabla-productos tr:active {
   background: var(--card-bg);
+}
+
+.tabla-averias {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla-averias th {
+  position: sticky;
+  top: 0;
+  background: var(--card-bg);
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.tabla-averias td {
+  padding: 10px 14px;
+  border-bottom: 0.5px solid var(--gray-100);
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.tabla-averias tr:hover {
+  background: var(--gray-50, rgba(0,0,0,0.02));
+}
+
+.obs-celda {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fotos-mini {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.foto-mini {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.foto-mini:active {
+  transform: scale(0.95);
+}
+
+.sin-foto {
+  color: var(--gray-400);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.acciones-tabla {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-editar-sm {
+  padding: 6px 12px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-editar-sm:active {
+  transform: scale(0.95);
+}
+
+.btn-eliminar-sm {
+  padding: 6px 12px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-eliminar-sm:active {
+  transform: scale(0.95);
 }
 
 .mas-resultos {

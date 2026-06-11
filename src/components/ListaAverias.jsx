@@ -103,61 +103,69 @@ const ListaAverias = ({ onEditar }) => {
       ) : (
         <>
           <h2>Registros ({averias.length})</h2>
-          {averias.map((averia) => (
-            <div key={averia.id} className="card-averia stagger-item">
-              <div className="card-header">
-                <span className="codigo">{averia.codigo}</span>
-                <span
-                  className={`estado estado-${averia.estado?.toLowerCase().replace(/\s/g, "-")}`}
-                >
-                  {averia.estado}
-                </span>
-              </div>
-              <div className="card-body">
-                <p>
-                  <strong>Producto:</strong> {averia.producto}
-                </p>
-                {averia.precio > 0 && (
-                  <p className="card-precio">
-                    <strong>Precio:</strong> {formatPrice(averia.precio)}
-                  </p>
-                )}
-                {averia.observaciones && (
-                  <p>
-                    <strong>Observaciones:</strong> {averia.observaciones}
-                  </p>
-                )}
-                <p className="fecha">
-                  {averia.created_at
-                    ? format(new Date(averia.created_at), "dd MMM yyyy, HH:mm", {
-                        locale: es,
-                      })
-                    : "Sin fecha"}
-                </p>
-              </div>
-              {averia.fotos && averia.fotos.length > 0 && (
-                <div className="card-fotos">
-                  {averia.fotos.map((src, i) => (
-                    <img
-                      key={i}
-                      src={src}
-                      alt={`Foto ${i + 1}`}
-                      className="foto-averia"
-                      onClick={() => setImagenVisor({ fotos: averia.fotos, indice: i })}
-                    />
-                  ))}
-                </div>
-              )}
-              <div className="card-footer">
-                <button className="btn-editar" onClick={() => onEditar(averia)}>
-                  Editar
-                </button>
-                <button className="btn-eliminar" onClick={() => manejarEliminar(averia.id)}>
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          ))}
+          <div className="tabla-scroll">
+            <table className="tabla-averias">
+              <thead>
+                <tr>
+                  <th>Codigo</th>
+                  <th>Fecha</th>
+                  <th>Producto</th>
+                  <th>Precio</th>
+                  <th>Estado</th>
+                  <th>Observaciones</th>
+                  <th>Fotos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {averias.map((averia) => (
+                  <tr key={averia.id}>
+                    <td><strong>{averia.codigo}</strong></td>
+                    <td>
+                      {averia.created_at
+                        ? format(new Date(averia.created_at), "dd MMM yyyy, HH:mm", { locale: es })
+                        : "Sin fecha"}
+                    </td>
+                    <td>{averia.producto}</td>
+                    <td>{averia.precio > 0 ? formatPrice(averia.precio) : "-"}</td>
+                    <td>
+                      <span className={`estado estado-${averia.estado?.toLowerCase().replace(/\s/g, "-")}`}>
+                        {averia.estado}
+                      </span>
+                    </td>
+                    <td className="obs-celda">{averia.observaciones || "-"}</td>
+                    <td>
+                      <div className="fotos-mini">
+                        {averia.fotos && averia.fotos.length > 0 ? (
+                          averia.fotos.map((src, i) => (
+                            <img
+                              key={i}
+                              src={src}
+                              alt={`Foto ${i + 1}`}
+                              className="foto-mini"
+                              onClick={() => setImagenVisor({ fotos: averia.fotos, indice: i })}
+                            />
+                          ))
+                        ) : (
+                          <span className="sin-foto">Sin foto</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="acciones-tabla">
+                        <button className="btn-editar-sm" onClick={() => onEditar(averia)}>
+                          Editar
+                        </button>
+                        <button className="btn-eliminar-sm" onClick={() => manejarEliminar(averia.id)}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
 
