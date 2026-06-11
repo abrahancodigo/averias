@@ -1,5 +1,7 @@
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
+import { ref, getBytes } from "firebase/storage";
+import { storage } from "../config/firebase";
 
 const imagenABase64 = async (url) => {
   if (url.startsWith("data:")) return url;
@@ -18,6 +20,35 @@ const imagenABase64 = async (url) => {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+};
+
+const descargarImagenDesdeStorage = async (url) => {
+  if (url.startsWith("data:")) return url;
+
+  try {
+    const urlObj = new URL(url);
+    const encodedPath = urlObj.pathname.split("/o/")[1];
+    if (!encodedPath) throw new Error("No se pudo extraer la ruta");
+    const path = decodeURIComponent(encodedPath);
+
+    const storageRef = ref(storage, path);
+    const bytes = await getBytes(storageRef);
+
+    const ext = detectarExtension(url, null);
+    const mimeMap = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif" };
+    const mime = mimeMap[ext] || "image/jpeg";
+
+    const blob = new Blob([bytes], { type: mime });
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn("Error con SDK Storage, intentando fetch:", e);
+    return imagenABase64(url);
+  }
 };
 
 const detectarExtension = (url, contentType) => {
@@ -170,7 +201,7 @@ export const exportarAveriasAExcel = async (averias) => {
         const contentType = response.headers.get("content-type");
         const extension = detectarExtension(url, contentType);
 
-        const base64 = await imagenABase64(url);
+        const base64 = await descargarImagenDesdeStorage(url);
         const rawBase64 = base64.includes(",") ? base64.split(",")[1] : base64;
         const imageId = workbook.addImage({
           base64: rawBase64,
