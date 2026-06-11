@@ -53,6 +53,7 @@ export const exportarAveriasAExcel = async (averias) => {
     { header: "Codigo", key: "codigo", width: 15 },
     { header: "Fecha", key: "fecha", width: 18 },
     { header: "Producto", key: "producto", width: 25 },
+    { header: "Precio", key: "precio", width: 15 },
     { header: "Estado", key: "estado", width: 15 },
     { header: "Observaciones", key: "observaciones", width: 35 },
     { header: "Foto", key: "foto", width: 35 },
@@ -80,6 +81,7 @@ export const exportarAveriasAExcel = async (averias) => {
       codigo: averia.codigo || "",
       fecha: fechaFormatted,
       producto: averia.producto || "",
+      precio: averia.precio || 0,
       estado: averia.estado || "",
       observaciones: averia.observaciones || "",
       foto: "",
@@ -110,7 +112,7 @@ export const exportarAveriasAExcel = async (averias) => {
 
         row.height = 120;
         sheet.addImage(imageId, {
-          tl: { col: 5, row: i + 1 },
+          tl: { col: 6, row: i + 1 },
           ext: { width: 245, height: 120 },
           editAs: "oneCell",
         });
@@ -122,7 +124,7 @@ export const exportarAveriasAExcel = async (averias) => {
 
   sheet.autoFilter = {
     from: "A1",
-    to: `F${averias.length + 1}`,
+    to: `G${averias.length + 1}`,
   };
 
   const fileName = `averias_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`;
