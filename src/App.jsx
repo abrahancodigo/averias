@@ -265,7 +265,7 @@ function App() {
     }
   }, [canSwipeRight, currentIndex, tabs, irA]);
 
-  const swipeEnabled = usuario && !averiaEditar && !menuAbierto;
+  const swipeEnabled = false;
 
   const swipeRef = useSwipeNavigation({
     onSwipeLeft: swipeLeft,
