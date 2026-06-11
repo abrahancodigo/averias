@@ -8,6 +8,7 @@ import {
 import { subirMultiplesImagenes } from "../services/imageService";
 import { compressImage } from "../utils/compressImage";
 import { vibrar } from "../utils/vibrar";
+import { formatPrice } from "../utils/formatPrice";
 
 const ESTADOS = ["Averia", "Faltante", "Sobrante"];
 
@@ -160,7 +161,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
               <span className="sugerencia-nombre">{p.nombre}</span>
             </div>
             {p.precio > 0 && (
-              <span className="sugerencia-precio">${parseFloat(p.precio).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="sugerencia-precio">{formatPrice(p.precio)}</span>
             )}
           </button>
         ))}
