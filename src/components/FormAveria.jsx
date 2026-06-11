@@ -160,7 +160,7 @@ const FormAveria = ({ averiaEditar, onCancelar }) => {
               <span className="sugerencia-nombre">{p.nombre}</span>
             </div>
             {p.precio > 0 && (
-              <span className="sugerencia-precio">${p.precio.toLocaleString("es")}</span>
+              <span className="sugerencia-precio">${parseFloat(p.precio).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             )}
           </button>
         ))}
